@@ -1,4 +1,4 @@
-#mp3 file splitter
+# mp3 file splitter
 This is a simple script that splits an mp3 file into seperate tracks, with extra flags to set meta-data.
 
 The only required arguments are the mp3 file and a 'config' file (which is responsible for timeline information).
@@ -38,12 +38,12 @@ For example, on https://youtu.be/73GPBc2MjVo you will find:
 ```
 in the description. So make a plaintext file and put that content in, then point to it with the `-c` flag.
 
-# Requirements
+## Requirements
  - Was used with Python 3.12.9
  - Requirements.txt attached 
    - `pip install -r requirements.txt`
 
-## Important Note on pydub
+### Important Note on pydub
 For pydub to work, it needs an audio processing backend. The most common one is FFmpeg. You will need to install it on your system separately; it is not a Python package and cannot be installed with pip.
 
 For me I simply ran the following and closed + reopened my terminal.
@@ -51,6 +51,7 @@ For me I simply ran the following and closed + reopened my terminal.
 pip install ffmpeg-downloader
 ffdl install --add-path
 ```
+
 
 
 
