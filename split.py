@@ -1,4 +1,3 @@
-from datetime import time
 from pydub import AudioSegment
 import argparse
 import music_tag
@@ -57,11 +56,11 @@ def main():
     parser.add_argument('-f', '--file', required=True, help="Location of the mp3 file to be split")
     parser.add_argument('-c', '--config', required=True, help="Location of config file")
     parser.add_argument('-o', '--output', help="Output location for file/s (optional)")
-    parser.add_argument('-a', '--album', help="Album name (optional)")
-    parser.add_argument('-art', '--artist', help="Add contributing artist (optional)")
-    parser.add_argument('-comp', '--composer', help="Composer name (optional)")
-    parser.add_argument('-tdisc', '--total_discs', type=int, help="Total number of discs (optional)")
-    parser.add_argument('-disc', '--disc', type=int, help="Disc number (optional)")
+    parser.add_argument('-a', '--album', help="Album name (optional, overrides source file)")
+    parser.add_argument('-art', '--artist', help="Add contributing artist (optional, overrides source file)")
+    parser.add_argument('-comp', '--composer', help="Composer name (optional, overrides source file)")
+    parser.add_argument('-tdisc', '--total_discs', type=int, help="Total number of discs (optional, overrides source file)")
+    parser.add_argument('-disc', '--disc', type=int, help="Disc number (optional, overrides source file)")
     args = parser.parse_args()
 
     if not os.path.isfile(args.file):
@@ -70,23 +69,30 @@ def main():
 
     try:
         audio = AudioSegment.from_mp3(args.file)
+        source_meta = music_tag.load_file(args.file)
         print('Successfully processed audio file...')
     except Exception as e:
         print(f"Error processing audio file: {e}")
         return
 
+    # Use command-line args if provided, otherwise fall back to source file's metadata.
+    album_name = args.album if args.album is not None else source_meta['album'].value
+    artist = args.artist if args.artist is not None else source_meta['artist'].value
+    composer = args.composer if args.composer is not None else source_meta['composer'].value
+    disc_number = args.disc if args.disc is not None else source_meta['discnumber'].value
+    total_discs = args.total_discs if args.total_discs is not None else source_meta['totaldiscs'].value
+
     total_length = len(audio) // 1000
-    album_name = args.album if args.album else os.path.splitext(os.path.basename(args.file))[0]
 
     try:
         tracks = process_conf(
             args.config,
             album=album_name,
             duration=total_length,
-            composer=args.composer,
-            total_discs=args.total_discs,
-            disc_number=args.disc,
-            artist=args.artist
+            composer=composer,
+            total_discs=total_discs,
+            disc_number=disc_number,
+            artist=artist
         )
         print('Successfully processed config file...')
     except FileNotFoundError:
@@ -99,11 +105,17 @@ def main():
     output_path = args.output if args.output else os.path.dirname(args.file)
     os.makedirs(output_path, exist_ok=True)
     
-    process_tracks(tracks, audio, output_path)
+    process_tracks(tracks, audio, output_path, source_meta, os.path.basename(args.file))
 
 
-def process_tracks(tracks: List[TrackInfo], audio: AudioSegment, output_path: str):
-    """Processes and exports each track."""
+def process_tracks(
+        tracks: List[TrackInfo],
+        audio: AudioSegment,
+        output_path: str,
+        source_meta: music_tag.file,
+        default_album: str
+    ):
+    """Processes and exports each track, copying metadata from the source."""
     total_tracks = len(tracks)
     for i, track in enumerate(tracks, 1):
         print(f"\rProcessing track {i}/{total_tracks}...", end="")
@@ -117,19 +129,38 @@ def process_tracks(tracks: List[TrackInfo], audio: AudioSegment, output_path: st
         
         segment.export(file_path, format="mp3")
 
-        # Set metadata tags
+        # Access metadata
         f = music_tag.load_file(file_path)
-        f['album'] = track.album
+
+        # Copy all tags from the source file (including artwork)
+        for tag_name in source_meta.tag_map.keys():
+            # Don't copy track-specific tags from the source container file
+            if (
+                    tag_name.lower() not in ['tracktitle', 'tracknumber', 'totaltracks']
+                    and source_meta.get(tag_name).val
+                    and not tag_name.startswith("#")
+                ):
+                f[tag_name] = source_meta.get(tag_name).val
+
+        # Set/overwrite with the new, specific info for this track
+        if track.album:
+            f['album'] = track.album
+        else:
+            f['album'] = default_album
         if track.composer:
             f['composer'] = track.composer
         if track.disc_number:
             f['discnumber'] = track.disc_number
         if track.total_discs:
             f['totaldiscs'] = track.total_discs
-        f['tracknumber'] = track.track_number
-        f['tracktitle'] = track.name
         if track.artist:
             f['artist'] = track.artist
+        
+        # track-specific tags
+        f['tracknumber'] = track.track_number
+        f['tracktitle'] = track.name
+        f['totaltracks'] = len(tracks)
+        
         f.save()
     print(f"\nProcessed {total_tracks} track/s!")
 
