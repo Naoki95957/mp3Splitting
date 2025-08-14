@@ -43,7 +43,7 @@ in the description. So make a plaintext file and put that content in, then point
  - Requirements.txt attached 
    - `pip install -r requirements.txt`
 
-##Important Note on pydub
+## Important Note on pydub
 For pydub to work, it needs an audio processing backend. The most common one is FFmpeg. You will need to install it on your system separately; it is not a Python package and cannot be installed with pip.
 
 For me I simply ran the following and closed + reopened my terminal.
@@ -51,4 +51,5 @@ For me I simply ran the following and closed + reopened my terminal.
 pip install ffmpeg-downloader
 ffdl install --add-path
 ```
+
 
