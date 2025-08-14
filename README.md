@@ -1,5 +1,5 @@
 # mp3 file splitter
-This is a simple script that splits an mp3 file into seperate tracks, with extra flags to set meta-data.
+This is a simple script that splits an mp3 file into seperate mp3s, with extra flags to set some metadata.
 
 The only required arguments are the mp3 file and a 'config' file (which is responsible for timeline information).
 
