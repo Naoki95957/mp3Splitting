@@ -3,6 +3,8 @@ This is a simple script that splits an mp3 file into seperate tracks, with extra
 
 The only required arguments are the mp3 file and a 'config' file (which is responsible for timeline information).
 
+The output destination by default will be the same path the mp3 file is on.
+
 Usage example:
 `python .\split.py -f="myMp3File.mp3" -c="timeline.txt"`
 
