@@ -1,7 +1,7 @@
 #mp3 file splitter
-This is a simple script that splits and mp3 file seperate tracks
+This is a simple script that splits an mp3 file into seperate tracks, with extra flags to set meta-data.
 
-The only required arguments are the mp3 file and a 'config' file.
+The only required arguments are the mp3 file and a 'config' file (which is responsible for timeline information).
 
 Usage example:
 `python .\split.py -f="myMp3File.mp3" -c="timeline.txt"`
@@ -36,7 +36,7 @@ For example, on https://youtu.be/73GPBc2MjVo you will find:
 #4 Shuttling Through the Abyssal Rift - 00:06:31
 #5 Prayer in a Land of War - 00:07:43
 ```
-in the description. So make a plaintext file and put that content in, then point to it with the -c flag.
+in the description. So make a plaintext file and put that content in, then point to it with the `-c` flag.
 
 # Requirements
  - Was used with Python 3.12.9
@@ -51,5 +51,6 @@ For me I simply ran the following and closed + reopened my terminal.
 pip install ffmpeg-downloader
 ffdl install --add-path
 ```
+
 
 
