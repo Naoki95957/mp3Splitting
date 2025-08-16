@@ -1,9 +1,10 @@
 from pydub import AudioSegment
+from threading import Thread 
+from typing import List, Optional
 import argparse
 import music_tag
 import os
 import re
-from typing import List, Optional
 
 # Goal: split mp3 file by simple copy/paste config I can get from YT timestamps
 # Given a file name and location of this conf file we split the original mp3 into
@@ -117,52 +118,68 @@ def process_tracks(
     ):
     """Processes and exports each track, copying metadata from the source."""
     total_tracks = len(tracks)
-    for i, track in enumerate(tracks, 1):
-        print(f"\rProcessing track {i}/{total_tracks}...", end="")
-        start_ms = track.track_start * 1000
-        end_ms = track.track_end * 1000 if track.track_end is not None else len(audio)
-        
-        segment = audio[start_ms:end_ms]
-        
-        sanitized_track_name = re.sub(r'[\\/*?:"<>|]',"", track.name)
-        file_path = os.path.join(output_path, f"{sanitized_track_name}.mp3")
-        
-        segment.export(file_path, format="mp3")
+    threads = []
+    for track in tracks:
+        thread = Thread(target=_process_track, args=(track, total_tracks, audio, output_path, source_meta, default_album))
+        threads.append(thread)
+        thread.start()
 
-        # Access metadata
-        f = music_tag.load_file(file_path)
-
-        # Copy all tags from the source file (including artwork)
-        for tag_name in source_meta.tag_map.keys():
-            # Don't copy track-specific tags from the source container file
-            if (
-                    tag_name.lower() not in ['tracktitle', 'tracknumber', 'totaltracks']
-                    and source_meta.get(tag_name).val
-                    and not tag_name.startswith("#")
-                ):
-                f[tag_name] = source_meta.get(tag_name).val
-
-        # Set/overwrite with the new, specific info for this track
-        if track.album:
-            f['album'] = track.album
-        else:
-            f['album'] = default_album
-        if track.composer:
-            f['composer'] = track.composer
-        if track.disc_number:
-            f['discnumber'] = track.disc_number
-        if track.total_discs:
-            f['totaldiscs'] = track.total_discs
-        if track.artist:
-            f['artist'] = track.artist
-        
-        # track-specific tags
-        f['tracknumber'] = track.track_number
-        f['tracktitle'] = track.name
-        f['totaltracks'] = len(tracks)
-        
-        f.save()
+    for thread in threads:
+        thread.join()
     print(f"\nProcessed {total_tracks} track/s!")
+
+def _process_track(
+        track: TrackInfo,
+        total_tracks: int,
+        audio: AudioSegment,
+        output_path: str,
+        source_meta: music_tag.file,
+        default_album: str
+    ):
+    """Processes an individual track"""
+    start_ms = track.track_start * 1000
+    end_ms = track.track_end * 1000 if track.track_end is not None else len(audio)
+    
+    segment = audio[start_ms:end_ms]
+    
+    sanitized_track_name = re.sub(r'[\\/*?:"<>|]',"", track.name)
+    file_path = os.path.join(output_path, f"{sanitized_track_name}.mp3")
+    
+    segment.export(file_path, format="mp3")
+
+    # Access metadata
+    f = music_tag.load_file(file_path)
+
+    # Copy all tags from the source file (including artwork)
+    for tag_name in source_meta.tag_map.keys():
+        # Don't copy track-specific tags from the source container file
+        if (
+                tag_name.lower() not in ['tracktitle', 'tracknumber', 'totaltracks']
+                and source_meta.get(tag_name).val
+                and not tag_name.startswith("#")
+            ):
+            f[tag_name] = source_meta.get(tag_name).val
+
+    # Set/overwrite with the new, specific info for this track
+    if track.album:
+        f['album'] = track.album
+    else:
+        f['album'] = default_album
+    if track.composer:
+        f['composer'] = track.composer
+    if track.disc_number:
+        f['discnumber'] = track.disc_number
+    if track.total_discs:
+        f['totaldiscs'] = track.total_discs
+    if track.artist:
+        f['artist'] = track.artist
+    
+    # track-specific tags
+    f['tracknumber'] = track.track_number
+    f['tracktitle'] = track.name
+    f['totaltracks'] = total_tracks
+    
+    f.save()
 
 
 def process_conf(
