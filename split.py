@@ -14,11 +14,11 @@ import re
 
 # Regex used for reading in config
 # Capture groups: 1 for number, 3 for section title, 5 for time
-CONFIG_PATTERN = r'#{0,1}(\d+)( [-\|]){0,1} (.*?)( [-\|]){0,1} ((\d{2}\:{0,1})+)'
+CONFIG_PATTERN = r'#{0,1}(\d+)( [-\|]){0,1} (.*?)( [-\|]){0,1} ((\d{1,3}\:{0,1})+)'
 
 # Capture groups: 1 for time, 4 for section title.
 # Assume index for track #
-ALT_CONFIG_PATTERN = r'((\d{2}\:{0,1})+)( [-\|]){0,1} (.*?)$'
+ALT_CONFIG_PATTERN = r'((\d{1,3}\:{0,1})+)( [-\|]){0,1} (.*?)$'
 
 
 class TrackInfo:
